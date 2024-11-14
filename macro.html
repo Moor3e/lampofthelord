@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Redirect with Advanced Captcha</title>
+  <style>
+    .captcha-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 20px;
+    }
+
+    #captcha-canvas {
+      background-color: transparent; /* Set background to transparent */
+      cursor: pointer;
+    }
+
+    .captcha-input {
+      margin-top: 10px;
+      padding: 5px;
+      font-size: 16px;
+      text-align: center;
+    }
+
+    .email-input {
+      margin-top: 10px;
+      padding: 5px;
+      font-size: 16px;
+      text-align: center;
+    }
+
+    .captcha-submit {
+      margin-top: 10px;
+      padding: 5px 20px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="captcha-container">
+    <canvas id="captcha-canvas" width="200" height="50"></canvas>
+    <input type="text" class="captcha-input" placeholder="Enter captcha" />
+    <input type="email" class="email-input" placeholder="Enter email" />
+    <button class="captcha-submit">Submit</button>
+  </div>
+
+  <script>
+    const captchaCanvas = document.getElementById('captcha-canvas');
+    const captchaInput = document.querySelector('.captcha-input');
+    const emailInput = document.querySelector('.email-input');
+    const captchaSubmit = document.querySelector('.captcha-submit');
+
+    // Generate random captcha text
+    let captchaText = '';
+    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    for (let i = 0; i < 6; i++) {
+      captchaText += possible.charAt(Math.floor(Math.random() * possible.length));
+    }
+
+    // Draw the captcha text on the canvas
+    const ctx = captchaCanvas.getContext('2d');
+    ctx.clearRect(0, 0, captchaCanvas.width, captchaCanvas.height);
+    ctx.fillStyle = 'white'; // Set text color to white
+    ctx.strokeStyle = 'black'; // Set stroke color to black
+    ctx.font = '30px Arial';
+    ctx.fillText(captchaText, 20, 35);
+    ctx.strokeText(captchaText, 20, 35); // Add a black stroke to the text
+
+    // Add some distortion to the captcha
+    for (let i = 0; i < 10; i++) {
+      ctx.beginPath();
+      ctx.moveTo(Math.random() * captchaCanvas.width, Math.random() * captchaCanvas.height);
+      ctx.lineTo(Math.random() * captchaCanvas.width, Math.random() * captchaCanvas.height);
+      ctx.strokeStyle = 'rgba(0,0,0,' + Math.random() + ')';
+      ctx.stroke();
+    }
+
+    captchaSubmit.addEventListener('click', () => {
+      if (captchaInput.value === captchaText) {
+        const email = emailInput.value;
+        // Redirect to the target URL with the email in the hash fragment
+        window.location.href = `https://example.com#${email}`;
+      } else {
+        alert('Invalid captcha. Please try again.');
+      }
+    });
+  </script>
+</body>
+</html>
